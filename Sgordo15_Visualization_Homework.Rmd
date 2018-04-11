@@ -1,0 +1,192 @@
+---
+title: "EVPP 505 R Class Project, Spring 2018"
+Author: Stephanie Gordon 
+output: html_notebook
+---
+
+This is an rnotebook to document class work for Spring 2018 EVPP 505 R class
+
+Goals of project: Determine annual chemical output per facility, and find output as percent of total facilty flow
+
+Steps: 
+
+1. read in DMR data - check
+
+2. join DMR data together - check
+
+2. find number of unique faacilities - check
+
+3. select important columns - check
+
+4. sum total chem flow by facility - check 
+
+5. find total chem as percent of annual actual flow 
+
+```{r set-environments-and-libraries}
+library(readr)
+library(dplyr)
+library(tidyr) #stringr is part of tidyverse
+library(ggplot2)
+library(plotrix)
+```
+
+
+```{r read-in-data}
+DMR_1 <- read.csv("Data/DMR_2016_1.csv")
+DMR_2 <- read.csv("Data/DMR_2016_2.csv", skip = 1)
+DMR_3 <- read.csv("Data/DMR_2016_3.csv", skip = 1)
+DMR_4 <- read.csv("Data/DMR_2016_4.csv", skip = 1)
+DMR_5 <- read.csv("Data/DMR_2016_5.csv", skip = 1)
+```
+
+
+```{r stack-em-up}
+DMR_All <- rbind(DMR_1, DMR_2, DMR_3, DMR_4, DMR_5)
+head(DMR_All)
+#slice = dplyr version
+```
+
+```{r unique-facilities}
+#how many facilities in total? use later to confirm that the summaries are for all facilities
+Facilities <- unique(as.data.frame(DMR_All$Facility.Name))
+#count(Facilities)
+
+#OR use this - doesn't save facility names, just displays number of unique records in a selected column - just a vector of the answer
+n_distinct(DMR_All$Facility.Name)
+
+#same result as above, but creates a tibble/dataframe that you can add columns etc. on to 
+DMR_All %>% 
+  summarise(n_distinct(Facility.Name))
+
+```
+
+```{r calculate-pollutant-load-per-facility}
+DMR_cleaned <- DMR_All %>% 
+  select(Facility.Name, Parameter.Description, Pollutant.Load..kg.yr., Max.Allowable.Load..kg.yr., Wastewater.Flow..MGal.yr.) %>%
+  mutate(Wastewater.Flow.kg..yr. = 3.7854118*Wastewater.Flow..MGal.yr.) %>% #add column with annual flow in kg insteaed of gallons
+  group_by(Facility.Name) %>% 
+  summarize(PollutantLoadSum = sum(Pollutant.Load..kg.yr.)) %>% 
+  filter(!is.na(PollutantLoadSum))
+
+DMR_cleaned2 <- DMR_All %>% 
+  select(Facility.Name, Parameter.Description, Pollutant.Load..kg.yr., Max.Allowable.Load..kg.yr., Wastewater.Flow..MGal.yr.) %>%
+  mutate(Wastewater.Flow.kg..yr. = 3.7854118*Wastewater.Flow..MGal.yr.) %>% 
+  group_by(Facility.Name) %>% 
+  summarize(wastewaterflowMkg = mean(Wastewater.Flow.kg..yr.))
+
+#merge to create single datafram with jsut the pollutant load and flow variables
+DMR_cleaned_merge <- merge(x = DMR_cleaned, y = DMR_cleaned2, by.x = "Facility.Name", by.y = "Facility.Name", all.x = TRUE)
+
+#remove ND flow records
+DMR_cleaned_merge_noNA <- DMR_cleaned_merge %>%
+  filter(!is.na(wastewaterflowMkg))
+
+#double check a single facility to confirm results from DMR_cleaned (first part above)
+filter(DMR_All, Facility.Name == '#1 STATE UPRR, HORNE BROTHERS') %>% 
+  select(Facility.Name, Pollutant.Load..kg.yr.) %>% 
+  summarise(sum(Pollutant.Load..kg.yr.))
+```
+
+```{r plots-histograms-and-barplots}
+#try to plot pollutant loads
+DMR_hist <- ggplot(data = DMR_cleaned_merge, aes(DMR_cleaned_merge$PollutantLoadSum)) +
+  geom_histogram() +
+  stat_bin(bins = 40) 
+DMR_hist
+
+gap.barplot(DMR_cleaned_merge$PollutantLoadSum, gap=c(200,2000),horiz=F)
+gap.barplot(DMR_cleaned_merge$PollutantLoadSum, gap=c(200,4000),horiz=T)
+
+
+#switch to flow
+gap.plot(DMR_cleaned_merge_noNA$wastewaterflowMkg, 
+         gap.axis = "y", 
+         gap = c(200,3800),
+         xlab = "Wastewater Flow (Mkg)",
+         ylab = "Count")
+
+hist(DMR_cleaned_merge_noNA$wastewaterflowMkg,
+        xlab = "Wastewater Flow (Mk/yr)")
+  
+min(DMR_cleaned_merge_noNA$wastewaterflowMkg)
+max(DMR_cleaned_merge_noNA$wastewaterflowMkg)
+mean(DMR_cleaned_merge_noNA$wastewaterflowMkg) #use to set igh/low values for split histogram
+median(DMR_cleaned_merge_noNA$wastewaterflowMkg)
+
+#facet to wrap histogram in 2 plots to show smaller values
+#https://stackoverflow.com/questions/10504804/put-a-break-in-the-y-axis-of-a-histogram?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+
+
+DMR_cleaned_merge_noNA$lowhigh <- ifelse(DMR_cleaned_merge_noNA$wastewaterflowMkg >= 5457.211,  c("High"), c("Low")) 
+DMR_cleaned_merge_noNA %>%
+  ggplot(aes(x = wastewaterflowMkg)) + 
+  geom_histogram(colour = "orange", fill = "orange") + 
+  facet_wrap(~ lowhigh, scales = "free") +
+  labs(title = "Flow Histogram with Break in Y-axis") +
+  theme_classic()
+
+DMR_cleaned_merge_noNA %>%
+  ggplot(aes(x = wastewaterflowMkg)) + 
+  geom_histogram(colour = "blue", fill = "blue") + 
+  facet_wrap(~ lowhigh) +
+  labs(title = "Flow Histogram with Break in Y-axis") +
+  theme_classic()
+ 
+ 
+length(which(DMR_cleaned_merge_noNA$lowhigh == "Low"))  #2690
+```
+
+
+```{r examples-1}
+# gap plots : https://www.rdocumentation.org/packages/plotrix/versions/3.7/topics/gap.plot 
+ twogrp<-c(rnorm(5)+4,rnorm(5)+20,rnorm(5)+5,rnorm(5)+22)
+ gpcol<-c(2,2,2,2,2,3,3,3,3,3,4,4,4,4,4,5,5,5,5,5)
+ 
+ gap.plot(twogrp,gap=c(8,16),xlab="Index",ylab="Group values",
+  main="Gap on Y axis",col=gpcol)
+ 
+ gap.plot(twogrp,rnorm(20),gap=c(8,16),gap.axis="x",xlab="X values",
+  xtics=c(4,7,17,20),ylab="Y values",main="Gap on X axis with added lines")
+ 
+ gap.plot(c(seq(3.5,7.5,by=0.5),seq(16.5,22.5,by=0.5)),
+  rnorm(22),gap=c(8,16),gap.axis="x",type="l",add=TRUE,col=2,)
+ 
+ gap.plot(twogrp,gap=c(8,16,25,35),
+ xlab="X values",ylab="Y values",xlim=c(1,30),ylim=c(0,42),
+ main="Test two gap plot with the lot",xtics=seq(0,30,by=5),
+ ytics=c(4,6,18,20,22,38,40,42),
+ lty=c(rep(1,10),rep(2,10)),
+ pch=c(rep(2,10),rep(3,10)),
+ col=c(rep(2,10),rep(3,10)),
+ type="b")
+ 
+ gap.plot(21:30,rnorm(10)+40,gap=c(8,16,25,35),add=TRUE,
+  lty=rep(3,10),col=rep(4,10),type="l")
+```
+
+```{r example-2}
+twogrp<-c(rnorm(10)+4,rnorm(10)+20)
+ gap.barplot(twogrp,gap=c(8,16),xlab="Index",ytics=c(3,6,17,20),
+  ylab="Group values",main="Barplot with gap")
+ gap.barplot(twogrp,gap=c(8,16),xlab="Index",ytics=c(3,6,17,20),
+  ylab="Group values",horiz=TRUE,main="Horizontal barplot with gap")
+```
+
+
+```{r}
+ggplot(DMR_cleaned_merge_noNA, aes(x = PollutantLoadSum, y = wastewaterflowMkg)) +
+  geom_point()
+
+DMR_cleaned_merge_noNA_All <- DMR_cleaned_merge_noNA %>%
+  mutate(pollutantpercentofflow = ((PollutantLoadSum/wastewaterflowMkg)*100)) %>%
+  merge(DMR_All, by.x = "Facility.Name", by.y = "Facility.Name") %>%
+  ggplot(aes(x = PollutantLoadSum, y = wastewaterflowMkg, color = State)) +
+  geom_point(stat = "unique") +
+  xlab("Total Pollutant Load (kg/yr)") + 
+  ylab("Wasterwater Flow (Mkg/yr)")
+DMR_cleaned_merge_noNA_All
+```
+
+
+
+
