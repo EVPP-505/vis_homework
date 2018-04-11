@@ -1,0 +1,55 @@
+---
+title: "Bat_vis1"
+author: "Heather S. Davies"
+date: "April 11, 2018"
+output: html_document
+---
+
+
+load the tidyverse library and ggrepel
+
+```{r libraries}
+library(dplyr)
+library(tidyverse)
+library(ggrepel)
+library(ggplot2)
+library(ggthemes)
+
+```
+
+load data
+
+```{r load_data}
+
+batdata <- read.csv("Bat_cty_vir.csv")
+
+View(batdata)
+
+```
+
+ 
+ 
+ ```{r summary-viz}
+batdata %>% 
+ 
+  group_by(taxonid) %>% 
+  summarise(l = mean(livingcanopy)) %>% 
+  ggplot(aes(x = taxonid, y = l)) +
+    geom_col() + # a column plot for each entry
+    ggtitle("SJER Distribution of Mean Living Canopy by Taxon Id") +
+    xlab("Taxon ID") + 
+    ylab("Living Canopy (%)") +
+    theme_minimal() + #change the theme
+    theme(plot.margin=unit(c(.5,1,.5,1), "cm"), #adjust the margin (top, right, bottom, left)
+          axis.text.x = element_text(angle = -60, hjust = -0.1)) # rotate the axis labels
+
+```
+```{r sum_genus}
+batdata %>% 
+  group_by(" Country") %>%
+  summarise(n = count())
+
+```
+
+
+ 
