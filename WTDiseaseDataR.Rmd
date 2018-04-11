@@ -1,0 +1,206 @@
+---
+title: "WTDisease"
+output: html_notebook
+---
+
+```{r libs}
+library(tidyverse)
+library(readxl)
+```
+
+
+# Wood Turtle Disease Data, attempt at reading in file, and organizing by column "Group"
+# WTDiseaseData <- read_excel("C:/Users/Alex Robillard/Desktop/R Data/WTDiseaseData.xlsx")
+```{r Import}
+WTDiseaseData <- read_excel("C:/Users/Alex Robillard/Desktop/R Data/WTDiseaseData.xlsx")
+
+WTDisease <- read_excel("C:/Users/Alex Robillard/Desktop/R Data/WTDiseaseData.xlsx")
+
+WTDisease
+```
+
+```{r Group Arrange-Count}
+
+arrange(WTDisease, Group)
+count(WTDisease, Group)
+
+```
+
+
+```{r Table}
+attach(WTDisease)
+
+WTD <- table(Group, Myco)
+WTD1 <- table(Myco, Group)
+WTD1
+WTD
+```
+
+```{r Fisher Exact Test}
+
+WTDFisher <- fisher.test(WTD, conf.int = T, conf.level = 0.95)
+WTDFisher1 <- fisher.test(WTD1, conf.int= T, conf.level = 0.95)
+WTDFisher1
+```
+
+```{r Fisher N v. S}
+NvS <- table(Group, Myco, exclude = "C")
+
+NvS
+
+NvS1 <- fisher.test(NvS, conf.int = T, conf.level = 0.95)
+NvS1
+
+```
+
+```{r Fisher N v. C}
+
+NvC <- table(Group, Myco, exclude = "S")
+
+NvC
+
+NvC1 <- fisher.test(NvC)
+NvC1
+#Does the p value here actually equal 1 or is there a way to parse this out?
+```
+
+
+
+```{r Fisher C v. S}
+
+CvS <- table(Group, Myco, exclude = "N")
+
+CvS
+
+CvS1 <- fisher.test(CvS)
+CvS1
+
+```
+
+```{r}
+library(readxl)
+WTDRG <- read_excel("C:/Users/Alex Robillard/Desktop/WTDRG.xlsx")
+
+WTDRG
+```
+
+
+```{r Long group Fisher Set up}
+#This code chunk is simply sorting out my table, I want to eventually break it into groups to run individual comparisons through a fisher exact test.
+arrange(WTDRG, Group)
+count(WTDRG, Group)
+WWW <- table (Group, Myco)
+WWW
+```
+
+```{r}
+fisher.test(WWW)
+```
+
+```{r SGS Fisher Tables}
+#Multiple Fisher exact tests SGS v. all
+BvSGS <- table (Group, Myco, exclude = c("P", "H", "NGS", "O"))
+PvSGS <- table (Group, Myco, exclude = c("B", "H", "NGS", "O"))
+OvSGS <- table (Group, Myco, exclude = c("B", "H", "NGS", "P"))
+HvSGS <- table (Group, Myco, exclude = c("B", "P", "NGS", "O"))
+NGSvSGS <- table (Group, Myco, exclude = c("B", "H", "P", "O"))
+
+NGSvSGS
+fisher.test(NGSvSGS, conf.int = TRUE, alternative = "two.sided")
+HvSGS
+fisher.test(HvSGS, conf.int = TRUE, alternative = "two.sided")
+OvSGS
+fisher.test(OvSGS, conf.int = TRUE, alternative = "two.sided")
+PvSGS
+fisher.test(PvSGS, conf.int = TRUE, alternative = "two.sided")
+BvSGS
+fisher.test(BvSGS, conf.int = TRUE, alternative = "two.sided")
+```
+
+```{r}
+#Multiple Fisher exact tests P v. all
+
+PvNGS <- table (Group, Myco, exclude = c("B", "H", "SGS", "O"))
+PvO <- table (Group, Myco, exclude = c("B", "H", "SGS", "NGS"))
+PvH <- table (Group, Myco, exclude = c("B", "O", "SGS", "NGS"))
+PvB <- table (Group, Myco, exclude = c("H", "NGS", "SGS", "O"))
+
+
+PvNGS
+fisher.test(PvNGS, conf.int = TRUE, alternative = "two.sided")
+PvO
+fisher.test(PvO, conf.int = TRUE, alternative = "two.sided")
+PvH
+fisher.test(PvH, conf.int = TRUE, alternative = "two.sided")
+PvB
+fisher.test(PvB, conf.int = TRUE, alternative = "two.sided")
+```
+
+
+```{r Fisher test O v. all}
+#O v. all remaining variables fisher test
+OvNGS <- table (Group, Myco, exclude = c("B", "H", "SGS", "P"))
+OvH <- table (Group, Myco, exclude = c("B", "P", "SGS", "NGS"))
+OvB <- table (Group, Myco, exclude = c("H", "NGS", "SGS", "P"))
+
+
+OvNGS
+fisher.test(OvNGS, conf.int = TRUE, alternative = "two.sided")
+OvH
+fisher.test(OvH, conf.int = TRUE, alternative = "two.sided")
+OvB
+fisher.test(OvB, conf.int = TRUE, alternative = "two.sided")
+```
+
+```{r Remaining Fisher tests}
+
+#NGS v. all remaining variables fisher test
+NGSvH <- table (Group, Myco, exclude = c("B", "O", "SGS", "P"))
+NGSvB <- table (Group, Myco, exclude = c("H", "O", "SGS", "P"))
+
+#B v.s H
+BvH <- table (Group, Myco, exclude = c("O", "P", "SGS", "NGS"))
+
+
+NGSvB
+fisher.test(NGSvB, conf.int = TRUE, alternative = "two.sided")
+NGSvH
+fisher.test(NGSvH, conf.int = TRUE, alternative = "two.sided")
+BvH
+fisher.test(BvH, conf.int = TRUE, alternative = "two.sided")
+```
+
+```{r}
+WWW
+0.05/15
+```
+
+
+##Linear Regression Analysis
+
+```{r Linear regression}
+
+WTLM <- subset(WL, select = c("Density", "PP"))
+WTLM
+plot(WTLM)
+GIDLM <- lm(PP ~ Density, data = WTLM)
+summary(GIDLM)
+```
+
+```{r Plotting Regression}
+# library(ggplot2)
+
+WREG <- WL %>% 
+  select(Density, PP) %>% 
+  ggplot(aes(x = Density, y = PP)) + 
+    geom_point(aes(color = Density)) +
+    scale_color_gradient(low = "green", high = "red") + 
+    geom_abline((aes(slope = 0.0009766, intercept = 0.3966563)), na.rm = FALSE, show.legend = NA) +
+    ggtitle("Prevelance of Mycoplasma (Spp.) in Wood Turtle Populations Across NYS") +
+    xlab("Human Population Density (per County)") +
+    ylab("Density of Mycoplasma Per WT Population")
+
+WREG
+```
+
+
