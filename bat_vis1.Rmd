@@ -1,0 +1,43 @@
+---
+title: "Bat_vis1"
+author: "Heather S. Davies"
+date: "April 11, 2018"
+output: html_document
+---
+
+Alex's changes are amasing
+
+thank you so much for sharing 
+
+I am making changes to commit
+load the tidyverse library and ggrepel
+
+```{r libraries}
+library(dplyr)
+library(tidyverse)
+library(ggrepel)
+library(ggplot2)
+library(ggthemes)
+
+```
+
+load data
+
+```{r load_data}
+
+batdata <- read.csv("Bat_cty_vir.csv")
+
+View(batdata)
+
+```
+  
+
+```
+```{r sum_genus}
+batdata %>% 
+  group_by( Country)
+
+```
+
+
+ 
