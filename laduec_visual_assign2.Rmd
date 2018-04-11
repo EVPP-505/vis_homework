@@ -1,0 +1,160 @@
+---
+title: "Visualizations Assignment 2"
+author: "Chase LaDue"
+date: "4/9/2018"
+output: html_document
+---
+
+The goal of this assignment is to generate a visualization using my own data. For this, I will be using elephant chemosensory data described in a previous assignment (located in EVPP505-projects/data_wrangle/ele_data_wrangle.Rmd).
+
+```{r libraries}
+library(tidyverse)
+library(RColorBrewer)
+```
+
+```{r import-data}
+ElePheromoneData <- read_csv("data/ElePheromoneData.csv")
+```
+
+```{r custom-theme}
+custom.theme <- theme(panel.grid.major = element_blank(), # these lines gets rid of distracting grid in background
+                      panel.grid.minor = element_blank(),
+                      panel.background = element_rect(fill="white"),
+                      axis.line = element_line(colour="black"), # this changes axes lines to black
+                      axis.text.x = element_text(colour="black", size=10), # changes axes text (numbers)
+                      axis.text.y = element_text(colour="black", size=10),
+                      axis.title.x = element_text(colour="black", size=12, face="bold"), # changes axes labels
+                      axis.title.y = element_text(colour="black", size=12, face="bold"),
+                      plot.title = element_text(face="bold",hjust=0.5), # centers plot title
+                      legend.title = element_text(face="bold", size=10), # changes legend title text
+                      legend.title.align = 0.5, # centers legend title
+                      legend.text = element_text(size=8), # changes legend text
+                      legend.background = element_rect(fill="#F6F6F6", colour = "black")) # adds background and border to legend
+```
+
+
+As a reminder, I've already made a graph of the average age for each sex-experience group, but this was using Base R. This is what it looked like:
+
+```{r base-r-graph}
+
+# data wrangling
+age.summary.data <- ElePheromoneData %>% 
+  group_by(Experience) %>% 
+  summarize(Number.Eles = (n()/6), Average.Age = mean(Age), Median.Age = median(Age))
+
+# graph labels
+sex.exp.group <- c("Female, Exp.", "Female, Naive", "Male, Exp.", "Male, Naive")
+
+# create plot
+barplot(age.summary.data$Average.Age, 
+        names.arg = sex.exp.group, 
+        col = c("lightpink", "lightpink", "lightskyblue", "lightskyblue"), 
+        ylab = "Average Age (yr)", 
+        xlab = "Sex-Experience Group", 
+        main = "Age Summary Data",
+        ylim = c(0,40)
+        )
+```
+
+However, this graph may be an oversimplification of these data. I'll use `ggplot2` to better interpret the data. First, I need to separate the "Experience" column in `ElePheromoneData` into two separate columns: one for sex and one for breeding history
+
+```{r data-separate}
+
+ElePheromoneData <- ElePheromoneData %>% 
+  mutate(sex = case_when(
+    Experience %in% c("F-Naive", "F-Experienced") ~ "Female",
+    Experience %in% c("M-Naive", "M-Experienced") ~ "Male",
+    TRUE ~ "Unknown")
+    ) %>% 
+  mutate (breeding.history = case_when(
+   Experience %in% c("F-Naive", "M-Naive") ~ "Naive",
+   Experience %in% c("F-Experienced", "M-Experienced") ~ "Experienced",
+   TRUE ~ "Unknown")
+   )
+
+# Make sure everything worked correctly:
+# View(ElePheromoneData)
+
+```
+
+```{r base-plot}
+ggplot(ElePheromoneData, aes(x = breeding.history, y = c.Positive, fill = Treatment)) +
+  geom_bar(position = "dodge", stat = "summary", fun.y = "mean") +
+  #geom_errorbar(aes(ymin=c.Positive-se, ymax=c.Positive+se), position = "dodge") +
+  facet_wrap(~ sex + Chemical)
+```
+
+This would be more informative with error bars, but I'll need to calculate the values for these.
+
+```{r calculate-sterr}
+
+graph.data <- ElePheromoneData %>% 
+  group_by(Chemical, sex, breeding.history, Treatment) %>% 
+  summarize(Average.Behav = mean(c.Positive), StErr = (sd(c.Positive)/sqrt(n())))
+
+```
+
+Now that I've created a new tibble to calculate standard error, I need to go back to the base plot I created above and substitute the correct values. Then, I can add error bars.
+
+```{r add-error-bars}
+a.1 <- ggplot(graph.data, aes(x = breeding.history, y = Average.Behav, fill = Treatment)) +
+  geom_bar(position = "dodge", stat = "summary", fun.y = "mean") +
+  geom_errorbar(aes(ymin=Average.Behav-StErr, ymax=Average.Behav+StErr), position = position_dodge(0.9), width = 0.2) +
+  facet_wrap(~ sex + Chemical) + custom.theme
+
+# a.1
+```
+
+These plots make it easy to interpret the data. Let's change the appearance to make it even easier
+
+```{r labels}
+a.2 <- a.1 + 
+  xlab("Breeding history") +
+  ylab("Proportion of time: positive behavior") +
+  ggtitle("Effect of pheromone treatment on positive behaviors") +
+  scale_fill_discrete(labels=c("Pre-treatment", "Treatment", "Post-treatment"), name = "Experimental phase")
+  
+# a.2
+```
+
+Let's get rid of the junk around the facets so that they're easier to read, and don't interfere with the plots themselves.
+
+```{r change-facets}
+
+custom.theme <- custom.theme + theme(
+  strip.text = element_text(face="bold"),
+  strip.background = element_rect(fill="white")
+)
+
+a.3 <- a.2 + custom.theme
+
+# a.3
+
+```
+
+Let's change to a color palette that's easier to read. Note: for the following code, need package `RColorBrewer` that was installed at beginning of this file.
+
+```{r change-color-palette}
+
+a.4 <- a.3 + scale_fill_brewer(palette="Pastel2", labels=c("Pre-treatment", "Treatment", "Post-treatment"), name = "Experimental phase")
+
+a.4
+
+```
+
+I don't like that the bars aren't flush with 0 on the x-axis. We can manually define limits, and use `expand`, to fix this.
+
+```{r reposition-bars}
+a.5 <- a.4 + scale_y_continuous(limits = c(0,0.35), expand = c(0,0))
+
+# a.5
+```
+
+
+This graph is easier to interpret now with all the changes I've made.
+```{r final-graph}
+final.graph <- a.5
+
+final.graph
+```
+
