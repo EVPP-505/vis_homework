@@ -1,0 +1,87 @@
+---
+title: "R Notebook Week 7 data wrangling"
+output: html_notebook
+
+---
+
+setting library
+```{r}
+library(dplyr)
+library(tidyr)
+library(readr)
+library(tidyverse)
+library(gridExtra)
+```
+importing data
+
+```{r}
+X1952_2017_test <- read_csv("D:/CGORSdata/1952-2017_test.csv", 
+     col_types = cols(Chord = col_number(), 
+         Flat = col_number(), Tail = col_number(), 
+         Weight = col_number()))
+dat <- X1952_2017_test
+glimpse(dat)
+tbl_df(dat)
+
+```
+## I want to find out if the size of migrating raptors is different throught the years looking at wegiht, wingchord, tail size, baed on age and sex
+narrowing data down to the predictors I am interested in 
+Species, Weight, Tail, WingChord, year caught, sex, age
+
+```{r}
+expdat <- select(dat,one_of(c("Species","Tail","Chord","Weight","Yr","Sex","Age")))
+```
+
+
+
+Create a new Dataset that excludes NA data 
+
+```{r}
+expdat1 <- filter(expdat,!is.na(Tail),!is.na(Chord),!is.na(Weight))
+expdat1
+```
+
+
+grouping data to look at Species
+
+```{r}
+dat <- arrange(expdat1, desc(Species)) 
+dat
+group_by(dat,Age)
+```
+
+
+
+```{r}
+p1 <- dat %>% 
+  filter(Species == "SSHA") %>% 
+  ggplot(aes(x = Sex, y = Weight)) +
+  geom_point() +
+  ggtitle("Sharpe-Shinned Hawk")
+
+p2 <- dat %>% 
+  filter(Species == "COHA") %>% 
+  ggplot(aes(x = Sex, y = Weight))+
+  geom_point()+
+  ggtitle("Coopers Hawk")
+
+p3 <- dat %>% 
+  filter(Species == "NOGO") %>% 
+  ggplot(aes(x = Sex, y = Weight))+
+  geom_point()+
+  ggtitle("Northern Goshawk") 
+
+grid.arrange(arrangeGrob(p1, p2, nrow = 1), arrangeGrob(p3),
+             nrow = 2, top = "Accipiter Weight by Sex")
+```
+```{r}
+p1a <- p1 + lims(y = c(0, 1500))
+
+p2a <- p2 + lims(y = c(0, 1500))
+                 
+p3a <- p3 + lims(y= c(0,1500))
+
+grid.arrange(arrangeGrob(p1a, p2a, nrow = 1), arrangeGrob(p3a),
+             nrow = 2, top = "Accipiter Weight by Sex")
+```
+
