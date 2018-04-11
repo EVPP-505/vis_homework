@@ -1,0 +1,157 @@
+---
+title: "Ayesha_week9_example"
+author: "Ayesha Karamat"
+date: "April 8, 2018"
+output: html_document
+---
+
+```{r}
+
+library(tidyverse)
+
+library(readxl)
+
+library(ggplot2)
+```
+
+
+
+```{r Data Import}
+
+## In this experiment soil samples were collected from three different sites. Soil was treated with two byproducts. Byproduct abbreviated as IRR contain Iron and Byproduct DWTR contained Aluminum. Experiment was conducted for 7 weeks and readings of absorption of phosphorus were taken on week2, week4, and week7.
+
+
+data <- read_excel("C:/Users/Adnan Salim/Desktop/EVPP505/week6/data_2.xlsx", 
+    sheet = "Sheet4")
+
+
+View(data)
+
+
+```
+
+
+```{r Absorption of phosphorus on week2,4 and 7}
+
+
+
+## To see absorption of phosphorus on second week of experiment.
+
+
+ggplot(data, aes(x=Treatment, y=week2))+geom_bar(stat="identity", position="dodge")
+
+# Addition of title, x and y axsis labels
+
+g1 <- ggplot(data, aes(x=Treatment, y=week2))
+
+g1+geom_bar(stat="identity", position="dodge")+
+  xlab("Treatment") + # added x-axis label
+  ylab("Absorption of Phosphorus") + # added y-axis label
+  ggtitle("Absorption of Phosphorus on week 2") + # graph title
+  theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1, face = "italic"))
+
+
+
+# To see the effect of treatment on absorption of phosphorus on week4 and week7
+
+g2 <- ggplot(data, aes(x=Treatment, y=week4))
+
+g2+geom_bar(stat="identity", position="dodge")+
+  xlab("Treatment") + # added x-axis label
+  ylab("Absorption of Phosphorus") + # added y-axis label
+  ggtitle("Absorption of Phosphorus on week 4") + # graph title
+  theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1, face = "italic")) 
+
+#week7
+
+g3<- ggplot(data, aes(x=Treatment, y=week7))
+
+g3+geom_bar(stat="identity", position="dodge")+
+  xlab("Treatment") + # added x-axis label
+  ylab("Absorption of Phosphorus") + # added y-axis label
+  ggtitle("Absorption of Phosphorus on week 7") + # graph title
+  theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1, face = "italic")) 
+
+
+```
+
+
+```{r}
+#  As soil samples were collected from different sites so I want to see wether the treatment has the same results or different soil samples show different results.
+
+ggplot(data, aes(x=Treatment, y=week2))+geom_point(mapping = aes(color=Site))+
+  
+   xlab("DWTR")+
+  
+ylab("Absorption of phosphorus on week2") 
+
+ggtitle("Absorption of Phosphorus on different types of soil") + theme_grey()
+
+
+theme(plot.margin=unit(c(1,1,1,1), "cm"), 
+      
+      #adjust the margin (top, right,bottom, left)
+      
+          axis.text.x = element_text(angle = 45, hjust = -0.1)) # rotate the axis labels
+
+
+```
+
+```{r comarison by site}
+
+ggplot(data, aes(x=Treatment, y=week2))+geom_bar(stat="identity", position="dodge")+facet_wrap(~Site, nrow = 1)+theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1, face = "italic"))
+
+
+```
+
+```{r Comparison of byproducts}
+ggplot(data, aes(x=Site, y=week2))+geom_bar(stat="identity", position="dodge")+facet_wrap(~Treatment, nrow = 1)+theme(axis.text.x = element_text(angle=0, hjust=1, vjust=1, face = "bold"))
+
+```
+
+
+
+```{r}
+
+# Two treatments were used so I divided the data in two data frames.
+
+data <- read_excel("C:/Users/Adnan Salim/Desktop/EVPP505/week6/data_2.xlsx", 
+    sheet = "Sheet4")
+
+
+View(data)
+
+df1 <- data [1:9,]
+
+df2 <- data [10:18,]
+
+g <- ggplot(data = df1, aes(x = Treatment, y = week2))
+
+
+g+geom_tile(aes (color=Site)) + theme_dark() + 
+  
+    scale_color_gradient(low = "yellow", high = "green")+
+  
+  xlab("DWTR")+
+  
+ylab("Absorption of phosphorus on week2") 
+
+ggtitle("Absorption of phosphorus in the presence of DWTR") + theme_light()
+
+
+theme(plot.margin=unit(c(1,1,1,1), "cm"), 
+      
+      #adjust the margin (top, right,bottom, left)
+      
+          axis.text.x = element_text(angle = 45, hjust = -0.1)) # rotate the axis labels
+
+
+
+
+```
+
+
+
+
+
+
